@@ -6,6 +6,16 @@
 #include <linux/kallsyms.h>
 #include <linux/syscalls.h>
 #include <linux/uaccess.h>
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,7,0)
+#define KPROBE_LOOKUP 1
+#include <linux/kprobes.h>
+static struct kprobe kp = {
+    .symbol_name = "kallsyms_lookup_name"
+};
+#endif
+
 
 MODULE_AUTHOR("Felipe Brasileiro");
 MODULE_DESCRIPTION("Simple module that hooks read and write syscalls for 'cat' and 'ls'");
@@ -55,6 +65,15 @@ asmlinkage long my_write(unsigned int fd, char __user *buffer, size_t count)
 
 static int __init m_init_(void)
 {
+
+#ifdef KPROBE_LOOKUP
+    typedef unsigned long (*kallsyms_lookup_name_t)(const char *name);
+    kallsyms_lookup_name_t kallsyms_lookup_name;
+    register_kprobe(&kp);
+    kallsyms_lookup_name = (kallsyms_lookup_name_t) kp.addr;
+    unregister_kprobe(&kp);
+#endif
+
     syscall_table = (unsigned long **)kallsyms_lookup_name("sys_call_table");
     if (!syscall_table)
         return -1;
