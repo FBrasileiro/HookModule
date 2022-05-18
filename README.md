@@ -1,4 +1,4 @@
-# SimpleHookModule
+# HookModule
 
 ## Initializing module
 
